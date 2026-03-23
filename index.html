@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>四人刷题打卡系统（升级版）</title>
+    <style>
+        /* 全局样式重置与基础配置 */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif;
+        }
+
+        :root {
+            /* 主题色 */
+            --color-fu: #4299e1;
+            --color-chai: #9f7aea;
+            --color-deng: #38b2ac;
+            --color-chen: #48bb78;
+            /* 辅助色 */
+            --color-danger: #e53e3e;
+            --color-bg: #f0f2f5;
+            --color-card: #ffffff;
+            --color-text-primary: #2c3e50;
+            --color-text-secondary: #64748b;
+            --color-border: #e2e8f0;
+            --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.08);
+            --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.12);
+            --radius-sm: 6px;
+            --radius-md: 12px;
+            --radius-lg: 20px;
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        body {
+            background-color: var(--color-bg);
+            background-image: 
+                radial-gradient(rgba(66, 153, 225, 0.05) 1px, transparent 1px),
+                radial-gradient(rgba(159, 122, 234, 0.05) 1px, transparent 1px);
+            background-size: 20px 20px;
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        /* 容器样式 */
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: var(--color-card);
+            padding: 40px;
+            border-radius: var(--radius-md);
+            box-shadow: var(--shadow-md);
+            border: 1px solid var(--color-border);
+            margin-top: 40px;
+            margin-bottom: 40px;
+        }
+
+        /* 标题样式 */
+        h1 {
+            text-align: center;
+            color: var(--color-text-primary);
+            margin-bottom: 40px;
+            font-size: 28px;
+            font-weight: 600;
+            position: relative;
+            padding-bottom: 16px;
+        }
+
+        h1::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 80px;
+            height: 4px;
+            background: linear-gradient(90deg, var(--color-fu), var(--color-chai));
+            border-radius: 2px;
+        }
+
+        /* 加载状态 */
+        .loading {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--color-text-secondary);
+            font-size: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+        }
+
+        .loading::before {
+            content: '';
+            width: 20px;
+            height: 20px;
+            border: 3px solid var(--color-border);
+            border-top-color: var(--color-fu);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* 个人卡片样式 */
+        .person-card {
+            margin: 24px 0;
+            padding: 24px;
+            border-radius: var(--radius-md);
+            background-color: var(--color-card);
+            border: 1px solid var(--color-border);
+            box-shadow: var(--shadow-sm);
+            transition: var(--transition);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .person-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 4px;
+            height: 100%;
+            opacity: 0.8;
+        }
+
+        #fu-jingya.person-card::before { background-color: var(--color-fu); }
+        #chai-guangjia.person-card::before { background-color: var(--color-chai); }
+        #deng-zhenyu.person-card::before { background-color: var(--color-deng); }
+        #chen-xinwei.person-card::before { background-color: var(--color-chen); }
+
+        .person-card:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-md);
+            border-color: rgba(66, 153, 225, 0.2);
+        }
+
+        /* 姓名样式 */
+        .person-name {
+            font-size: 20px;
+            font-weight: 600;
+            color: var(--color-text-primary);
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .person-name::after {
+            content: '';
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+
+        #fu-jingya .person-name::after { background-color: var(--color-fu); }
+        #chai-guangjia .person-name::after { background-color: var(--color-chai); }
+        #deng-zhenyu .person-name::after { background-color: var(--color-deng); }
+        #chen-xinwei .person-name::after { background-color: var(--color-chen); }
+
+        /* 统计信息 */
+        .stats {
+            display: flex;
+            justify-content: space-between;
+            color: var(--color-text-secondary);
+            margin-bottom: 16px;
+            font-size: 15px;
+        }
+
+        .stats span {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .stats span:first-child::before {
+            content: '📝';
+            font-size: 14px;
+        }
+
+        .stats span:last-child::before {
+            content: '📊';
+            font-size: 14px;
+        }
+
+        /* 进度条容器 */
+        .progress-container {
+            width: 100%;
+            height: 12px;
+            background-color: var(--color-border);
+            border-radius: var(--radius-lg);
+            margin: 16px 0;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* 进度条样式 */
+        .progress-bar {
+            height: 100%;
+            border-radius: var(--radius-lg);
+            line-height: 30px;
+            text-align: right;
+            color: transparent;
+            font-weight: bold;
+            transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            padding-right: 8px;
+            background: linear-gradient(90deg, var(--bar-color), lighten(var(--bar-color), 10%));
+        }
+
+        .progress-bar::after {
+            content: attr(data-percent);
+            position: absolute;
+            right: 8px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 10px;
+            color: white;
+            font-weight: 600;
+            opacity: 0;
+            transition: var(--transition);
+        }
+
+        .progress-container:hover .progress-bar::after {
+            opacity: 1;
+        }
+
+        /* 输入组样式 */
+        .input-group {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+
+        input[type="number"] {
+            padding: 10px 16px;
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-sm);
+            width: 120px;
+            font-size: 15px;
+            transition: var(--transition);
+            color: var(--color-text-primary);
+            background-color: var(--color-bg);
+        }
+
+        input[type="number"]:focus {
+            outline: none;
+            border-color: var(--color-fu);
+            box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.1);
+        }
+
+        /* 按钮样式 */
+        button {
+            padding: 10px 24px;
+            border-radius: var(--radius-sm);
+            border: none;
+            cursor: pointer;
+            font-size: 15px;
+            font-weight: 500;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+
+        .add-btn {
+            background-color: var(--color-fu);
+            color: white;
+        }
+
+        .add-btn:hover {
+            background-color: #3182ce;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(66, 153, 225, 0.2);
+        }
+
+        .add-btn:active {
+            transform: translateY(0);
+        }
+
+        .reset-btn {
+            background-color: var(--color-danger);
+            color: white;
+            margin-left: 8px;
+        }
+
+        .reset-btn:hover {
+            background-color: #c53030;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(229, 62, 62, 0.2);
+        }
+
+        .reset-btn:active {
+            transform: translateY(0);
+        }
+
+        /* 总计统计 */
+        .total-stats {
+            text-align: center;
+            margin-top: 40px;
+            font-size: 18px;
+            color: var(--color-text-primary);
+            font-weight: 600;
+            padding: 20px;
+            background-color: rgba(66, 153, 225, 0.05);
+            border-radius: var(--radius-md);
+            border: 1px solid rgba(66, 153, 225, 0.1);
+        }
+
+        .total-stats span {
+            color: var(--color-fu);
+            font-size: 20px;
+            font-weight: 700;
+        }
+
+        /* 响应式适配 */
+        @media (max-width: 768px) {
+            .container {
+                padding: 24px;
+                margin: 20px;
+            }
+
+            h1 {
+                font-size: 24px;
+            }
+
+            .person-card {
+                padding: 20px;
+            }
+
+            .input-group {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            input[type="number"] {
+                width: 100%;
+            }
+
+            button {
+                width: 100%;
+            }
+
+            .reset-btn {
+                margin-left: 0;
+                margin-top: 8px;
+            }
+        }
+
+        /* 完成进度动效 */
+        @keyframes progress-pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.8; }
+            100% { opacity: 1; }
+        }
+
+        .progress-bar[data-percent="100"] {
+            animation: progress-pulse 2s infinite;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>刷题打卡系统（目标：150题）</h1>
+        
+        <div class="loading" id="loading">加载中...</div>
+        
+        <!-- 卡片会通过JS动态生成 -->
+        <div id="cards-container"></div>
+
+        <div class="total-stats">
+            四人总计：<span id="total-done">0</span> 题 / 目标 600 题
+        </div>
+    </div>
+
+    <script>
+        // 配置 - 这里修改为你的服务器IP或域名
+        const TARGET = 150;
+        const API_BASE = 'https://daka-n9jj.onrender.com';
+        //const API_BASE = 'http://localhost:3000/api';  // 本地运行用这个
+        // 如果部署到服务器，修改为：const API_BASE = 'http://你的服务器IP:3000/api';
+        
+        // 颜色配置（和CSS变量对应）
+        const colorMap = {
+            'fu-jingya': '#4299e1',
+            'chai-guangjia': '#9f7aea',
+            'deng-zhenyu': '#38b2ac',
+            'chen-xinwei': '#48bb78'
+        };
+
+        // 获取所有用户数据（接口名称不变）
+        async function fetchAllProgress() {
+            try {
+                const response = await fetch(`${API_BASE}/progress`);
+                const result = await response.json();
+                if (result.success) {
+                    return result.data;
+                } else {
+                    alert('获取数据失败');
+                    return [];
+                }
+            } catch (error) {
+                alert('服务器连接失败，请检查服务器是否启动');
+                return [];
+            }
+        }
+
+        // 更新用户刷题数（接口名称不变）
+        async function updateProgress(username, addCount) {
+            try {
+                const response = await fetch(`${API_BASE}/update`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ username, addCount })
+                });
+                const result = await response.json();
+                if (result.success) {
+                    return result.data.count;
+                } else {
+                    alert('打卡失败：' + result.message);
+                    return null;
+                }
+            } catch (error) {
+                alert('服务器连接失败，请检查服务器是否启动');
+                return null;
+            }
+        }
+
+        // 重置用户刷题数（接口名称不变）
+        async function resetProgress(username) {
+            try {
+                const response = await fetch(`${API_BASE}/reset`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ username })
+                });
+                const result = await response.json();
+                if (result.success) {
+                    return 0;
+                } else {
+                    alert('重置失败：' + result.message);
+                    return null;
+                }
+            } catch (error) {
+                alert('服务器连接失败，请检查服务器是否启动');
+                return null;
+            }
+        }
+
+        // 生成用户卡片（功能逻辑不变，仅UI渲染优化）
+        function renderCards(users) {
+            const container = document.getElementById('cards-container');
+            const loading = document.getElementById('loading');
+            loading.style.display = 'none';
+            
+            container.innerHTML = '';
+            
+            users.forEach(user => {
+                const card = document.createElement('div');
+                card.className = 'person-card';
+                card.id = user.username;
+                
+                const percent = Math.round((user.count / TARGET) * 100);
+                
+                // 渲染卡片内容（保留所有原有结构和类名）
+                card.innerHTML = `
+                    <div class="person-name">${user.realname}</div>
+                    <div class="stats">
+                        <span>已刷：<span class="done-count">${user.count}</span> 题</span>
+                        <span>进度：<span class="progress-percent">${percent}</span>%</span>
+                    </div>
+                    <div class="progress-container">
+                        <div class="progress-bar" 
+                             style="width: ${percent}%; --bar-color: ${colorMap[user.username]};"
+                             data-percent="${percent}">
+                        </div>
+                    </div>
+                    <div class="input-group">
+                        <input type="number" min="0" max="${TARGET - user.count}" placeholder="今日刷题数" class="add-input">
+                        <button class="add-btn">
+                            <span>打卡</span>
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <line x1="12" y1="5" x2="12" y2="19"></line>
+                                <line x1="5" y1="12" x2="19" y2="12"></line>
+                            </svg>
+                        </button>
+                        <button class="reset-btn">
+                            <span>重置</span>
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M3 2v6h6"></path>
+                                <path d="M21 12A9 9 0 0 0 6 5l-2 7h18Z"></path>
+                            </svg>
+                        </button>
+                    </div>
+                `;
+                
+                container.appendChild(card);
+                
+                // 绑定事件（完全保留原有逻辑）
+                const addBtn = card.querySelector('.add-btn');
+                const resetBtn = card.querySelector('.reset-btn');
+                const input = card.querySelector('.add-input');
+                
+                // 打卡按钮
+                addBtn.addEventListener('click', async () => {
+                    const addCount = parseInt(input.value) || 0;
+                    if (addCount < 0 || addCount > TARGET - user.count) {
+                        alert(`请输入0-${TARGET - user.count}之间的数字！`);
+                        return;
+                    }
+                    
+                    const newCount = await updateProgress(user.username, addCount);
+                    if (newCount !== null) {
+                        updateCardUI(card, newCount);
+                        updateTotalStats();
+                        input.value = '';
+                        
+                        // 打卡成功动效
+                        card.style.transform = 'scale(1.02)';
+                        setTimeout(() => {
+                            card.style.transform = '';
+                        }, 300);
+                    }
+                });
+                
+                // 重置按钮
+                resetBtn.addEventListener('click', async () => {
+                    if (confirm('确定要重置该人的刷题记录吗？')) {
+                        const newCount = await resetProgress(user.username);
+                        if (newCount !== null) {
+                            updateCardUI(card, newCount);
+                            updateTotalStats();
+                        }
+                    }
+                });
+                
+                // 回车打卡
+                input.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') {
+                        addBtn.click();
+                    }
+                });
+            });
+            
+            updateTotalStats();
+        }
+
+        // 更新单个卡片UI（保留原有逻辑）
+        function updateCardUI(card, count) {
+            const doneCount = card.querySelector('.done-count');
+            const progressPercent = card.querySelector('.progress-percent');
+            const progressBar = card.querySelector('.progress-bar');
+            const input = card.querySelector('.add-input');
+            
+            const percent = Math.round((count / TARGET) * 100);
+            
+            doneCount.textContent = count;
+            progressPercent.textContent = percent;
+            progressBar.style.width = `${percent}%`;
+            progressBar.setAttribute('data-percent', percent);
+            
+            // 更新输入框最大值
+            input.max = TARGET - count;
+        }
+
+        // 更新总计统计（保留原有逻辑）
+        async function updateTotalStats() {
+            const users = await fetchAllProgress();
+            const total = users.reduce((sum, user) => sum + user.count, 0);
+            document.getElementById('total-done').textContent = total;
+        }
+
+        // 页面加载初始化（保留原有逻辑）
+        window.addEventListener('DOMContentLoaded', async () => {
+            const users = await fetchAllProgress();
+            if (users.length > 0) {
+                renderCards(users);
+            }
+        });
+    </script>
+</body>
+</html>
